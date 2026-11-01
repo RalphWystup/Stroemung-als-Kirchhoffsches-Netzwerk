@@ -1,0 +1,390 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CFD-Labor — Strömung als Kirchhoffsches Netzwerk</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<script>
+window.PRUEFSTAND = {
+  "fassung": "@@FASSUNG@@",
+  "stand": "@@STAND@@",
+  "kern": "kern_cfd.js @@KERNFASSUNG@@ — gegen ../stroemung/ geprüft, @@KERNPROBEN@@ Posten",
+  "reiter": ["labor","zeitverlauf","wirbel","kurz","verfahren","befunde","anleitung","quellen","lizenz"]
+};
+</script>
+<style>
+:root{
+  --grund:#f2f2ee; --flaeche:#ffffff; --tinte:#1a1e24; --gedeckt:#5b636e;
+  --linie:#d9dad4; --akzent:#2f6296; --akzent-tinte:#274f78;
+  --schirm:#14171c; --schirmrand:#2a2f38;
+  --wegA:#b23a3a; --wegB:#2e6f9e; --diff:#4c8c56; --warn:#c08a30;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --grund:#14171c; --flaeche:#1c2027; --tinte:#e8eaed; --gedeckt:#98a0ab;
+    --linie:#2b313b; --akzent:#6ba3d6; --akzent-tinte:#8db8e0;
+    --wegA:#e07070; --wegB:#6ba3d6; --diff:#7fc08a;
+  }
+}
+:root[data-theme="dark"]{
+  --grund:#14171c; --flaeche:#1c2027; --tinte:#e8eaed; --gedeckt:#98a0ab;
+  --linie:#2b313b; --akzent:#6ba3d6; --akzent-tinte:#8db8e0;
+  --wegA:#e07070; --wegB:#6ba3d6; --diff:#7fc08a;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--grund); color:var(--tinte);
+     font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+header.kopf{position:sticky; top:0; z-index:20; background:var(--flaeche);
+  border-bottom:1px solid var(--linie); padding:0 20px;
+  display:flex; align-items:center; gap:22px; flex-wrap:wrap}
+.marke{font:600 17px/1.2 Georgia,"Times New Roman",serif; padding:13px 0}
+.marke .verfasser{display:block; color:var(--gedeckt); font-weight:400; font-size:12px;
+  font-family:system-ui; margin-top:3px; letter-spacing:0}
+.marke span{color:var(--gedeckt); font-weight:400; font-size:13px;
+  font-family:system-ui,sans-serif; margin-left:10px}
+nav.reiter{display:flex; gap:4px; flex-wrap:wrap}
+nav.reiter button{border:0; background:none; color:var(--gedeckt);
+  font:500 14px system-ui,sans-serif; padding:15px 13px 12px; cursor:pointer;
+  border-bottom:3px solid transparent}
+nav.reiter button.an{color:var(--akzent); border-bottom-color:var(--akzent)}
+main{max-width:1320px; margin:0 auto; padding:18px 20px 70px}
+.zwei{display:grid; grid-template-columns:400px 1fr; gap:16px; align-items:start}
+@media (max-width:980px){ .zwei{grid-template-columns:1fr} }
+.kasten{background:var(--flaeche); border:1px solid var(--linie);
+  border-radius:8px; padding:14px 16px}
+.kasten h2{margin:0 0 10px; font:600 11px system-ui,sans-serif;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--gedeckt)}
+.kasten + .kasten{margin-top:14px}
+.knoepfe{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+.knoepfe button{border:1px solid var(--linie); background:var(--grund);
+  color:var(--tinte); border-radius:6px; padding:7px 14px; font:500 13px system-ui;
+  cursor:pointer}
+.knoepfe button.gn{background:var(--akzent); border-color:var(--akzent); color:#fff}
+.knoepfe button.an{border-color:var(--akzent); color:var(--akzent); font-weight:600}
+.knoepfe button:disabled{opacity:.5; cursor:default}
+.wahl{display:flex; gap:6px; margin:0 0 10px; flex-wrap:wrap}
+.wahl button{flex:1 1 auto; border:1px solid var(--linie); background:var(--grund);
+  color:var(--gedeckt); border-radius:6px; padding:6px 8px; font:13px system-ui;
+  cursor:pointer}
+.wahl button.an{border-color:var(--akzent); color:var(--akzent); font-weight:600}
+.zeile{display:flex; align-items:center; gap:10px; margin-top:10px}
+.zeile label{min-width:112px; font:12.5px system-ui; color:var(--gedeckt)}
+.zeile input[type=range]{flex:1; accent-color:var(--akzent)}
+.zeile .wert{font:12.5px ui-monospace,Consolas,monospace; color:var(--akzent-tinte);
+  min-width:72px; text-align:right}
+canvas.schirm{width:100%; background:var(--schirm); border:1px solid var(--schirmrand);
+  border-radius:6px; display:block}
+canvas.weiss{background:var(--flaeche); border:1px solid var(--linie)}
+.hinweis{margin-top:10px; font:12px/1.55 ui-monospace,Consolas,monospace;
+  color:var(--gedeckt); white-space:pre-wrap}
+.hinweis.fehler{color:#c04a4a}
+table.tafel{border-collapse:collapse; width:100%; font:13px system-ui; margin-top:8px}
+table.tafel th,table.tafel td{border-bottom:1px solid var(--linie); padding:5px 8px;
+  text-align:right}
+table.tafel th:first-child,table.tafel td:first-child{text-align:left}
+table.tafel th{font:600 11px system-ui; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--gedeckt)}
+table.tafel td.zahl{font-family:ui-monospace,Consolas,monospace; font-variant-numeric:tabular-nums}
+.gut{color:var(--diff); font-weight:600}
+.schlecht{color:#c04a4a; font-weight:600}
+.doku{background:var(--flaeche); border:1px solid var(--linie); border-radius:8px;
+  padding:26px 34px; max-width:860px; margin:0 auto}
+.doku h1{font:600 26px/1.25 Georgia,serif; margin:0 0 6px}
+.doku h2{font:600 19px/1.3 Georgia,serif; margin:30px 0 8px;
+  border-bottom:1px solid var(--linie); padding-bottom:5px}
+.doku h3{font:600 15.5px/1.35 Georgia,serif; margin:20px 0 6px; color:var(--akzent-tinte)}
+.doku p{margin:9px 0}
+.doku code{font:12.5px ui-monospace,Consolas,monospace; background:var(--grund);
+  padding:1px 4px; border-radius:3px}
+.doku pre{background:var(--grund); border:1px solid var(--linie); border-radius:6px;
+  padding:10px 12px; overflow-x:auto; font:12px/1.5 ui-monospace,Consolas,monospace}
+.doku table{border-collapse:collapse; margin:12px 0; font-size:13.5px; width:100%}
+.doku th,.doku td{border:1px solid var(--linie); padding:5px 9px; text-align:left}
+.doku th{background:var(--grund); font-weight:600}
+.doku blockquote{border-left:3px solid var(--linie); margin:10px 0; padding:2px 0 2px 14px;
+  color:var(--gedeckt)}
+.doku math{font-size:1.02em}
+.doku .nav{position:sticky; top:52px; background:var(--flaeche); padding:8px 0;
+  border-bottom:1px solid var(--linie); margin-bottom:10px; font-size:12.5px;
+  display:flex; gap:12px; flex-wrap:wrap}
+.doku .nav a{color:var(--akzent); text-decoration:none}
+.bildkasten{background:var(--flaeche); border:1px solid var(--linie); border-radius:8px;
+  padding:12px; text-align:center}
+.bildkasten img{max-width:100%; height:auto; border-radius:4px}
+.bildkasten figcaption{font:12.5px system-ui; color:var(--gedeckt); margin-top:8px;
+  text-align:left}
+.merk{background:var(--grund); border-left:3px solid var(--akzent); padding:9px 13px;
+  margin:12px 0; font-size:13.5px}
+.merk.warn{border-left-color:var(--warn)}
+.legende{display:flex; gap:16px; flex-wrap:wrap; font:12px system-ui; color:var(--gedeckt);
+  margin-top:8px}
+.legende i{display:inline-block; width:22px; height:3px; border-radius:2px; margin-right:5px;
+  vertical-align:middle}
+.schirmtitel{font:600 12px system-ui; color:var(--gedeckt); margin:12px 0 4px;
+  display:flex; justify-content:space-between; align-items:baseline}
+.schirmtitel b{font:600 12px ui-monospace,Consolas,monospace; color:var(--akzent-tinte)}
+.dank{margin:10px 0 2px; padding:10px 12px; border-left:3px solid var(--akzent);
+  background:#f6f8fb; font:12.5px/1.6 system-ui; color:var(--tinte)}
+.dank b{color:var(--akzent-tinte)}
+.dank code{font:12px ui-monospace,Consolas,monospace}
+.quellliste h4{margin:14px 0 4px; font:600 12px system-ui; color:var(--akzent-tinte);
+  letter-spacing:.3px}
+.quelltafel{width:100%; border-collapse:collapse; font:12.5px system-ui; margin-bottom:6px}
+.quelltafel th, .quelltafel td{text-align:left}
+.quelltafel th{font:600 11px system-ui; color:var(--gedeckt);
+  border-bottom:1px solid var(--linie); padding:4px 8px; letter-spacing:.3px;
+  text-transform:uppercase}
+.quelltafel td{padding:4px 8px; border-bottom:1px solid #eceeea; vertical-align:top}
+.quelltafel th:first-child, .quelltafel td:first-child{width:14em}
+.quelltafel th.zahl, .quelltafel td.zahl{text-align:right}
+.quelltafel tr[data-i]{cursor:pointer}
+.quelltafel tr[data-i]:hover td{background:#eef3f9}
+.quelltafel tr.an td{background:var(--akzent); color:#fff}
+.quelltafel tr.an code, .quelltafel tr.an .pruefsumme{color:#fff}
+.quelltafel code{font:12px ui-monospace,Consolas,monospace; color:var(--akzent-tinte)}
+.quelltafel .zahl{text-align:right; font-variant-numeric:tabular-nums}
+.quelltafel .pruefsumme{font:11px ui-monospace,Consolas,monospace; color:var(--gedeckt)}
+.quelle{font:12px/1.55 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;
+  background:#fbfbfa; border:1px solid var(--linie); border-radius:4px;
+  padding:12px 14px; overflow:auto; max-height:72vh; white-space:pre; tab-size:4;
+  color:var(--tinte)}
+[hidden]{display:none!important}
+</style>
+
+<header class="kopf">
+  <div class="marke">CFD-Labor<span>Strömung als Kirchhoffsches Netzwerk · Fassung @@FASSUNG@@ · @@STAND@@</span>
+    <span class="verfasser">Prof. Dr.-Ing. Ralph Wystup M.Sc. — erstellt mit KI und Agent (Claude Code, Anthropic)</span></div>
+  <nav class="reiter">
+    <button id="r-labor" class="an" onclick="zeige('labor')">Vergleichsverfahren</button>
+    <button id="r-zeitverlauf" onclick="zeige('zeitverlauf')">Zeitverlauf</button>
+    <button id="r-wirbel" onclick="zeige('wirbel')">Wirbelstraße</button>
+    <button id="r-kurz" onclick="zeige('kurz')">Kurzfassung</button>
+    <button id="r-verfahren" onclick="zeige('verfahren')">Verfahren &amp; Nachweis</button>
+    <button id="r-befunde" onclick="zeige('befunde')">Befunde</button>
+    <button id="r-anleitung" onclick="zeige('anleitung')">Anleitung</button>
+    <button id="r-quellen" onclick="zeige('quellen')">Programme</button>
+    <button id="r-lizenz" onclick="zeige('lizenz')">Lizenz</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ======================= REITER 1: VERGLEICHSVERFAHREN ======================= -->
+<div id="ansicht-labor" class="zwei">
+  <div>
+    <div class="kasten">
+      <h2>Welcher Vergleich</h2>
+      <div class="wahl" id="wahl-vergleich">
+        <button class="an" onclick="waehleVergleich('stempel')">Zweigstempel</button>
+        <button onclick="waehleVergleich('druck')">Drucknetz</button>
+        <button onclick="waehleVergleich('impuls')">Impulsoperator</button>
+        <button onclick="waehleVergleich('loeser')">Ganzer Löser</button>
+        <button onclick="waehleVergleich('galerkin')">Galerkin — zweiter Weg</button>
+      </div>
+      <div id="erklaerung" class="hinweis"></div>
+    </div>
+
+    <div class="kasten" id="k-stempel">
+      <h2>Einstellungen</h2>
+      <div class="zeile"><label>Péclet-Zahl</label>
+        <input type="range" id="s-pe" min="0" max="60" value="20" oninput="rechneStempel()">
+        <span class="wert" id="w-pe">—</span></div>
+      <div class="zeile"><label>Zellen</label>
+        <input type="range" id="s-n" min="5" max="80" value="20" oninput="rechneStempel()">
+        <span class="wert" id="w-n">20</span></div>
+      <div class="knoepfe">
+        <button class="gn" onclick="rechneStempel()">Rechnen</button>
+        <button onclick="document.getElementById('s-pe').value=43;rechneStempel()">Pe = 1000</button>
+        <button onclick="document.getElementById('s-pe').value=20;rechneStempel()">Pe = 20</button>
+      </div>
+      <div class="hinweis" id="h-stempel"></div>
+    </div>
+
+    <div class="kasten" id="k-netz" hidden>
+      <h2>Einstellungen</h2>
+      <div class="zeile"><label>Zellen in x</label>
+        <input type="range" id="s-nx" min="20" max="160" step="10" value="60" oninput="zeigeNetzmass()">
+        <span class="wert" id="w-nx">60</span></div>
+      <div class="zeile"><label>Zellen in y</label>
+        <input type="range" id="s-ny" min="8" max="40" step="2" value="22" oninput="zeigeNetzmass()">
+        <span class="wert" id="w-ny">22</span></div>
+      <div class="wahl" id="wahl-koerper">
+        <button class="an" onclick="setzeKoerper(true)">mit Störkörper und Ausstrom</button>
+        <button onclick="setzeKoerper(false)">nacktes Netz</button>
+      </div>
+      <div class="hinweis" id="h-kein-koerper" hidden></div>
+      <div class="knoepfe">
+        <button class="gn" onclick="rechneNetz()">Sprachprobe rechnen</button>
+      </div>
+      <div class="hinweis" id="h-netz"></div>
+    </div>
+
+    <div class="kasten" id="k-loeser" hidden>
+      <h2>Einstellungen</h2>
+      <div class="zeile"><label>Netz</label>
+        <select id="s-netz" style="flex:1">
+          <option value="110,21">110 × 21 — 5 Zellen über D (schnell)</option>
+          <option value="140,26" selected>140 × 26 — 6 Zellen über D</option>
+          <option value="176,33">176 × 33 — 8 Zellen über D (langsamer)</option>
+        </select></div>
+      <div class="zeile"><label>Rechenzeit bis</label>
+        <input type="range" id="s-tende" min="1" max="60" value="20" oninput="zeigeTende()">
+        <span class="wert" id="w-tende">2,0 s</span></div>
+      <div class="knoepfe">
+        <button class="gn" id="b-start" onclick="starteLoeser()">Beide Wege rechnen</button>
+        <button id="b-stop" onclick="haltLoeser()" disabled>Anhalten</button>
+      </div>
+      <div class="hinweis" id="h-loeser"></div>
+    </div>
+
+    <div class="kasten" id="k-galerkin" hidden>
+      <h2>Einstellungen</h2>
+      <div class="zeile"><label>Netz am Zylinder</label>
+        <select id="s-hzyl" style="flex:1">
+          <option value="0.030">30 mm — grob, schnell</option>
+          <option value="0.020" selected>20 mm</option>
+          <option value="0.015">15 mm — feiner, langsamer</option>
+        </select></div>
+      <div class="zeile"><label>Rechenzeit bis</label>
+        <input type="range" id="s-gtende" min="5" max="120" value="30" oninput="zeigeGTende()">
+        <span class="wert" id="w-gtende">3,0 s</span></div>
+      <div class="knoepfe">
+        <button class="gn" id="b-gstart" onclick="starteGalerkin()">Beide Wege rechnen</button>
+        <button id="b-gstop" onclick="haltGalerkin()" disabled>Anhalten</button>
+      </div>
+      <div class="hinweis" id="h-galerkin"></div>
+    </div>
+
+    <div class="kasten">
+      <h2>Wo das im Python-Teil steht</h2>
+      <div class="hinweis" id="h-quelle"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="kasten" id="f-stempel">
+      <h2 id="t-ergebnis">Ergebnis</h2>
+      <canvas id="c-stempel" class="weiss" width="1100" height="420" style="width:100%"></canvas>
+      <div class="legende" id="l-stempel"></div>
+      <div id="tafel-stempel"></div>
+    </div>
+    <div class="kasten" id="f-netz" hidden>
+      <h2>Ergebnis</h2>
+      <div id="tafel-netz"></div>
+      <div class="schirmtitel"><span>Besetzungsmuster der Knotenadmittanzmatrix</span><b id="b-nnz"></b></div>
+      <canvas id="c-muster" class="weiss" width="760" height="760" style="width:100%;max-width:520px"></canvas>
+      <div class="hinweis" id="h-muster"></div>
+    </div>
+    <div class="kasten" id="f-galerkin" hidden>
+      <h2>Beide Wege, hier im Browser gerechnet</h2>
+      <div id="tafel-galerkin"></div>
+      <div class="schirmtitel"><span>Das körperangepasste Netz — der Zylinderrand liegt auf Knoten</span><b id="b-gnetz"></b></div>
+      <canvas id="c-gnetz" class="weiss" width="1100" height="230" style="height:auto"></canvas>
+      <!-- Danksagung an den Urheber des Vernetzers. Sie steht HIER, unmittelbar unter
+           dem Netz, das er erzeugt hat -- und nicht im Kleingedruckten. Shewchuk bittet
+           ausdruecklich darum: „If you use a mesh generated by Triangle in a
+           publication, please include an acknowledgment as well." -->
+      <div class="dank">Dieses Netz wurde mit <b>Triangle</b> erzeugt, dem
+        Netzgenerator und Delaunay-Triangulierer von <b>Jonathan Richard Shewchuk</b>
+        (Carnegie Mellon University) — demselben, den auch FEMM benutzt. Mit Dank an den
+        Autor. Triangle ist frei verfügbar, aber urheberrechtlich geschützt und darf ohne
+        Lizenz des Autors nicht verkauft oder in kommerzielle Erzeugnisse aufgenommen
+        werden; die WebAssembly-Hülle <code>triangle-wasm</code> 1.0.0 von Bruno Imbrizi
+        steht unter MIT. Einzelheiten und Zitate im Reiter <b>Anleitung</b>.</div>
+      <div class="schirmtitel"><span>Galerkin — schwache Form, Taylor-Hood P2/P1</span><b id="b-gfeld"></b></div>
+      <canvas id="c-gfeld" class="schirm" width="1100" height="230" style="height:auto"></canvas>
+      <div class="schirmtitel"><span>Netzwerk nach Kirchhoff — Flussbilanz, Zylinder als Treppe</span><b id="b-nfeld"></b></div>
+      <canvas id="c-nfeld" class="schirm" width="1100" height="230" style="height:auto"></canvas>
+      <div class="schirmtitel"><span>Beiwerte über der Zeit — beide Wege übereinander</span><b id="b-gbahn"></b></div>
+      <canvas id="c-gbahn" class="weiss" width="1100" height="300" style="height:auto"></canvas>
+      <div class="hinweis" id="h-gfazit"></div>
+    </div>
+    <div class="kasten" id="f-loeser" hidden>
+      <h2>Wirbelstärke, gerechnet im Browser</h2>
+      <canvas id="c-loeser" class="schirm" width="1100" height="230" style="height:auto"></canvas>
+      <div id="tafel-loeser"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ REITER 2: ZEITVERLAUF ========================== -->
+<div id="ansicht-zeitverlauf" hidden>
+  <div class="kasten">
+    <h2>Was hier gezeigt wird</h2>
+    <div class="wahl" id="wahl-zeit">
+      <button class="an" onclick="waehleZeit('unabhaengig')">Netzwerk gegen Galerkin</button>
+      <button onclick="waehleZeit('wege')">Weg A gegen Weg B</button>
+      <button onclick="waehleZeit('surrogat')">Surrogat gegen echte Rechnung</button>
+    </div>
+    <div class="hinweis" id="h-zeit"></div>
+    <div class="zeile"><label>Zeit</label>
+      <input type="range" id="s-zeit" min="0" max="100" value="0" oninput="zeigeZeit(+this.value)">
+      <span class="wert" id="w-zeit">—</span></div>
+    <div class="knoepfe">
+      <button class="gn" id="b-spiel" onclick="spielen()">Abspielen</button>
+      <button onclick="zeigeZeit(0)">Anfang</button>
+      <span style="flex:1"></span>
+      <label style="font:12.5px system-ui;color:var(--gedeckt);display:flex;align-items:center;gap:6px">
+        Differenz verstärken
+        <input type="range" id="s-lupe" min="0" max="170" value="0" oninput="zeigeZeit(null)" style="width:120px">
+        <span class="wert" id="w-lupe" style="min-width:56px">×1</span></label>
+    </div>
+  </div>
+  <div class="kasten" style="margin-top:14px">
+    <div class="schirmtitel"><span id="t-z1">Weg A — Netzwerk nach Kirchhoff</span><b id="b-z1"></b></div>
+    <canvas id="c-z1" class="schirm" width="1100" height="205" style="height:auto"></canvas>
+    <div class="schirmtitel"><span id="t-z2">Weg B — klassische Finite Volumen</span><b id="b-z2"></b></div>
+    <canvas id="c-z2" class="schirm" width="1100" height="205" style="height:auto"></canvas>
+    <div class="schirmtitel"><span id="t-z3">Differenz A − B</span><b id="b-z3"></b></div>
+    <canvas id="c-z3" class="schirm" width="1100" height="205" style="height:auto"></canvas>
+    <div class="hinweis" id="h-zeitfuss"></div>
+  </div>
+</div>
+
+<!-- ============================ REITER 3: WIRBELSTRASSE ======================== -->
+<div id="ansicht-wirbel" hidden>@@WIRBEL@@</div>
+
+<!-- ======================= REITER 4: VERFAHREN & NACHWEIS ====================== -->
+<!-- ======================= REITER: KURZFASSUNG ======================= -->
+<div id="ansicht-kurz" hidden><div class="doku">@@KURZFASSUNG@@</div></div>
+
+<div id="ansicht-verfahren" hidden><div class="doku">@@VERFAHREN@@</div></div>
+
+<!-- ============================== REITER 5: BEFUNDE =========================== -->
+<div id="ansicht-befunde" hidden><div class="doku">@@BEFUNDE@@</div></div>
+
+<!-- ============================= REITER 6: ANLEITUNG ========================== -->
+<div id="ansicht-anleitung" hidden><div class="doku">@@ANLEITUNG@@</div></div>
+
+<!-- ============================== REITER: LIZENZ ============================== -->
+<!-- ============================ REITER: PROGRAMME ============================ -->
+<div id="ansicht-quellen" hidden>
+  <div class="kasten">
+    <h2>Die Programme, mit denen gerechnet wurde</h2>
+    <div class="hinweis">Alle Programme liegen hier im Wortlaut bei — nicht als Verweis.
+Wer nachrechnen will, braucht die Quellen, nicht ihre Erwähnung. Zu jedem steht seine
+Größe und seine Prüfsumme; damit lässt sich nachweisen, dass es dasselbe ist wie das
+ausgelieferte.
+
+Die Python-Programme laufen mit numpy und scipy; die JavaScript-Teile sind der
+Rechenkern dieser Seite selbst. Die Proben beurteilen sich selbst und enden mit
+Rückgabewert 0 oder 1.</div>
+    <div class="schirmtitel"><span>Alle Programme dieser Arbeit</span><b id="b-quellzahl"></b></div>
+    <div id="quellliste" class="quellliste"></div>
+    <div class="zeile" style="margin-top:12px"><label>angezeigt</label>
+      <select id="s-quelle" style="flex:1" onchange="zeigeQuelle()"></select></div>
+    <div class="hinweis" id="h-quelle-kopf"></div>
+  </div>
+  <div class="kasten">
+    <pre id="quelltext" class="quelle"></pre>
+  </div>
+</div>
+
+<div id="ansicht-lizenz" hidden><div class="doku">@@LIZENZ@@</div></div>
+
+</main>
+
+<script>@@TRIANGLE@@</script>
+<script>@@KERN@@</script>
+<script>@@KERNFEM@@</script>
+<script>@@NETZJS@@</script>
+<script>@@DATEN@@</script>
+<script>@@LABOR@@</script>
