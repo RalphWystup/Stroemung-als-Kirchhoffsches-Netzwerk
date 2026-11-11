@@ -2,11 +2,12 @@
 title: "Strömungsrechnung als Netzwerk — Befundblatt"
 subtitle: "Was schiefging, wie es gefunden wurde, und warum die vorhandenen Proben es nicht sahen"
 author: "Prof. Dr.-Ing. Ralph Wystup"
-date: "31. Oktober 2026"
+date: "11. November 2026"
 lang: de
 ---
 
-Fassung 1.9 — gegenüber 1.8 neu: B23, die Ersetzung lief über ihr eigenes Ergebnis.
+Fassung 1.10 — gegenüber 1.9 neu: B24, die Zeichenflächen wuchsen auf Bildschirmen mit Skalierung.
+Fassung 1.9: B23, die Ersetzung lief über ihr eigenes Ergebnis.
 Fassung 1.8: B22, die fehlende zweite Kurve im Zeitdiagramm.
 Fassung 1.7: B18 bis B21 aus dem Bau des Galerkin-Lösers für den
 Browser (Prüfmaß durch null, der Auftrieb als empfindlicher Zeiger, Stabilität über
@@ -653,3 +654,40 @@ angesehen, und was eingesetzt wird, wird nicht noch einmal durchsucht.
 zuschnappt, wenn der eingesetzte Inhalt zufällig wie eine Marke aussieht. Das kann Jahre
 dauern — und tritt genau dann ein, wenn man den Erzeuger in sein eigenes Erzeugnis legt.
 Bei Textmarken gilt: **ein Durchgang, keine Rückkopplung.**
+
+# B24 Die Zeichenflächen wuchsen auf Bildschirmen mit Skalierung
+
+*Datei* `labor/vorlage.html`, Seite 1.5 → 1.6
+
+Sein Befund vom 11.11.2026 aus Frankfurt, an einem anderen Rechner als zu Hause: „bei der
+Simulation wird das Bild immer größer." Zu Hause war nichts dergleichen zu sehen, und alle
+Knopfproben waren grün.
+
+Der Unterschied zwischen den beiden Rechnern ist die **Bildschirmskalierung**. Bei 125 oder
+150 % meldet der Browser ein `devicePixelRatio` von 1,25 oder 1,5, und die Zeichenhilfe
+legt die Bitmap einer Zeichenfläche — richtig — dpr-mal breiter an als ihre CSS-Breite, damit
+das Bild scharf bleibt. Die Spalte, in der die Zeichenfläche liegt, ist eine Gitterspalte
+`1fr`. Das heißt `minmax(auto, 1fr)`: Die Spalte darf nicht schmaler werden als der
+Mindestinhalt — und als Mindestinhalt zählt bei einer Zeichenfläche ihre Bitmap-Breite, auch
+wenn `width:100%` daran steht. Also weitete sich die Spalte auf die Bitmap, beim nächsten
+Bild maß `clientWidth` die geweitete Spalte, die Bitmap wurde wieder dpr-mal breiter, und so
+fort: Faktor 1,5 je Bild. Bei dpr = 1 sind Bitmap und CSS-Breite gleich, und nichts bewegt
+sich.
+
+**Warum die vorhandene Prüfung es durchließ.** Die Knopfprobe läuft in Playwright mit
+`deviceScaleFactor` 1 — wie der Rechner zu Hause. Sie prüfte 71 Posten auf Inhalt und
+Zahlen, aber keinen auf die Geometrie der Seite, und keinen unter der Bedingung, unter der
+der Fehler überhaupt entsteht. Eine Probe, die die auslösende Bedingung nicht herstellt,
+kann den Fehler nicht sehen; grün heißt dann nur „unter meinen Bedingungen nichts gefunden."
+
+**Behoben.** `grid-template-columns: 400px minmax(0,1fr)`, `min-width:0` für die
+Spalteninhalte und `max-width:100%` für jede Zeichenfläche. Gemessen mit Playwright bei
+Skalierung 1,0, 1,5 und 2,0 über vier Sekunden Rechnung: vorher wuchs die Seite bei 1,5 von
+13 005 auf 28 672 px Breite, nachher bleiben alle Flächen bei 788 px. Knopfprobe danach 71
+von 71.
+
+**Lehre:** Eine Seite wird dort geprüft, wo sie gezeigt wird — und Bildschirme mit
+Skalierung sind die Regel, nicht die Ausnahme. Jede Seitenprobe fährt ab jetzt auch mit
+`deviceScaleFactor` 1,5 und hält die Abmessungen der Zeichenflächen über die Zeit fest.
+Dasselbe Muster, mit anderer Mechanik, saß am selben Tag in der Telegraphen-Seite
+(Sollhöhe aus dem zurückgeschriebenen `height`-Attribut gelesen).

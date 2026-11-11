@@ -17,8 +17,8 @@ Die Fassungsnummer steht NUR hier (stehende Regel). Eingebaut werden:
 Kein Verweis nach aussen: Die Seite laedt nichts nach. Das ist Bedingung, nicht Zier --
 sie soll auf einem Rechner ohne Netz genauso laufen.
 """
-FASSUNG = "1.5"
-STAND = "01.11.2026"
+FASSUNG = "1.6"
+STAND = "11.11.2026"
 
 import base64
 import io

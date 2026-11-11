@@ -1,11 +1,13 @@
 ---
 title: "Strömungsrechnung als Kirchhoffsches Netzwerk — Einstieg"
 author: "Prof. Dr.-Ing. Ralph Wystup"
-date: "1. November 2026"
+date: "11. November 2026"
 lang: de
 ---
 
-Fassung 1.8 — neu gegenüber 1.7: Reiter **Programme** mit allen Quelltexten, das Blatt
+Fassung 1.9 — neu gegenüber 1.8: Seite 1.6, die Zeichenflächen wachsen auf Bildschirmen
+mit Skalierung nicht mehr (Befund B24).
+Fassung 1.8: Reiter **Programme** mit allen Quelltexten, das Blatt
 für Fred im Anleitungsreiter, MIT für den eigenen Code.
 Fassung 1.7: eigener Reiter **Lizenz** im Labor, Verfasser und Entstehung im Kopf.
 Fassung 1.6: die Lizenz- und Danksagungsbedingungen zu Triangle, an der Quelle nachgeprüft.
@@ -61,7 +63,7 @@ Die WebAssembly-Hülle `triangle-wasm` 1.0.0 von Bruno Imbrizi steht unter **MIT
 
 # Das Labor im Browser
 
-`CFD_Labor_1.5.html` ist **eine einzige Datei**, die ohne Netz läuft — kein Nachladen,
+`CFD_Labor_1.6.html` ist **eine einzige Datei**, die ohne Netz läuft — kein Nachladen,
 kein CDN. Doppelklick genügt. Neun Reiter:
 
 | Reiter | Was dort geschieht |

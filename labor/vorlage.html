@@ -46,7 +46,14 @@ nav.reiter button{border:0; background:none; color:var(--gedeckt);
   border-bottom:3px solid transparent}
 nav.reiter button.an{color:var(--akzent); border-bottom-color:var(--akzent)}
 main{max-width:1320px; margin:0 auto; padding:18px 20px 70px}
-.zwei{display:grid; grid-template-columns:400px 1fr; gap:16px; align-items:start}
+.zwei{display:grid; grid-template-columns:400px minmax(0,1fr); gap:16px; align-items:start}
+/* Befund 11.11.2026 (sein Wort aus Frankfurt: „bei der Simulation wird das Bild immer groesser"): Bei
+   Bildschirmskalierung ueber 100 % wird die Bitmap einer Zeichenflaeche dpr-mal breiter als ihre CSS-Breite.
+   Eine Spalte „1fr" heisst minmax(auto,1fr) und weitet sich auf die Bitmap-Breite; beim naechsten Bild misst
+   clientWidth die geweitete Spalte -- und so fort, Faktor dpr je Bild. Daher minmax(0,1fr), min-width:0 fuer
+   die Spalteninhalte und max-width:100 % fuer jede Zeichenflaeche. Gemessen mit Playwright bei 1,0 und 1,5. */
+.zwei>*{min-width:0}
+canvas{max-width:100%}
 @media (max-width:980px){ .zwei{grid-template-columns:1fr} }
 .kasten{background:var(--flaeche); border:1px solid var(--linie);
   border-radius:8px; padding:14px 16px}

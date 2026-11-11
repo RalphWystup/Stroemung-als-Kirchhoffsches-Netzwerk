@@ -4,7 +4,7 @@
 
 Prof. Dr.-Ing. Ralph Wystup M.Sc. — erstellt mit KI und Agent (Claude Code, Anthropic)
 
-**Seite öffnen:** https://ralphwystup.github.io/Stroemung-als-Kirchhoffsches-Netzwerk/ — das CFD-Labor 1.5.
+**Seite öffnen:** https://ralphwystup.github.io/Stroemung-als-Kirchhoffsches-Netzwerk/ — das CFD-Labor 1.6.
 Eine einzige Datei, die ohne Netz läuft: Sie rechnet die Kármánsche Wirbelstraße im Browser, und zwar auf
 **zwei verschieden hergeleiteten Wegen gleichzeitig**. Neun Reiter, darunter alle Programme im Wortlaut.
 
@@ -78,7 +78,7 @@ FEMM benutzt. **Mit Dank an den Autor.**
 
 **MIT** für den eigenen Teil, siehe [LICENSE](LICENSE).
 
-**Ausgenommen ist Triangle** (`labor/triangle/`, in `CFD_Labor_1.5.html` eingebettet): urheberrechtlich
+**Ausgenommen ist Triangle** (`labor/triangle/`, in `CFD_Labor_1.6.html` eingebettet): urheberrechtlich
 geschützt, für Forschung und Lehre frei, aber ohne Lizenz des Autors weder verkäuflich noch in ein
 kommerzielles Erzeugnis aufzunehmen. Die MIT-Lizenz gilt dafür nicht und kann dafür keine Rechte einräumen.
 
